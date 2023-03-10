@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_prototype_debug_lines::*;
-use jello2d::*;
+use jelly2d::*;
 
 fn main() {
     App::new()
