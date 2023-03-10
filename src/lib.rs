@@ -1,4 +1,4 @@
-use bevy::{prelude::*};
+use bevy::prelude::*;
 
 #[derive(Resource)]
 pub struct Gravity(pub Vec2);
@@ -16,11 +16,14 @@ impl MassPoint {
 
         self.velocity += (force * time.delta_seconds()) / self.mass;
 
-
         self.position += self.velocity * time.delta_seconds();
     }
 
-    pub fn update_mass_points(mut query: Query<&mut MassPoint>, time: Res<Time>, gravity: Res<Gravity>) {
+    pub fn update_mass_points(
+        mut query: Query<&mut MassPoint>,
+        time: Res<Time>,
+        gravity: Res<Gravity>,
+    ) {
         for mut mp in query.iter_mut() {
             mp.update_mass_point(&time, &gravity);
         }
@@ -54,15 +57,11 @@ impl Spring {
 
         let force = self.stiffness * (mp_b.position.distance(mp_a.position) - self.rest_length);
 
-
         let corresponding_velocity_difference = mp_b.velocity - mp_a.velocity;
-
 
         let normalized_direction_vector = (mp_b.position - mp_a.position).normalize_or_zero();
 
-
         let dot_product = corresponding_velocity_difference.dot(normalized_direction_vector);
-
 
         //total spring force
         force + dot_product * self.damping_factor
@@ -83,9 +82,10 @@ impl Spring {
             }
         }
 
-
-        mp_a.velocity = mp_a.velocity + total_spring_force * (mp_b.position - mp_a.position).normalize_or_zero();
-        mp_b.velocity = mp_b.velocity + total_spring_force * (mp_a.position - mp_b.position).normalize_or_zero();
+        mp_a.velocity = mp_a.velocity
+            + total_spring_force * (mp_b.position - mp_a.position).normalize_or_zero();
+        mp_b.velocity = mp_b.velocity
+            + total_spring_force * (mp_a.position - mp_b.position).normalize_or_zero();
     }
 
     pub fn update_springs(mut query: Query<&mut Spring>, mut mp_query: Query<&mut MassPoint>) {
@@ -98,7 +98,7 @@ impl Spring {
 ///SIZE has to be the same as the amont of points in the Shape
 #[derive(Component)]
 pub struct Shape<const SIZE: usize> {
-    pub points: [Entity; SIZE], 
+    pub points: [Entity; SIZE],
 }
 
 impl<const SIZE: usize> Shape<SIZE> {
@@ -124,7 +124,7 @@ impl<const SIZE: usize> Shape<SIZE> {
                 min_y = point.position.y;
             }
 
-            if (point.position.y < min_y) {
+            if point.position.y < min_y {
                 max_y = point.position.y;
             }
         }
