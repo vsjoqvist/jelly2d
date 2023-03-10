@@ -7,7 +7,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(DebugLinesPlugin::default())
         .add_startup_system(setup)
-        .insert_resource(Gravity(Vec2::new(-10.0, 0.0)))
+        .insert_resource(Gravity(Vec2::new(0.0, 0.0)))
         .add_system(Spring::update_springs)
         .add_system(MassPoint::update_mass_points)
         .add_system(draw_springs)
@@ -34,13 +34,21 @@ fn setup(mut commands: Commands) {
             x: 500.0,
             y: -100.0,
         },
-        mass: 500.0,
+        ..default()
+    };
+
+    let p4 = MassPoint {
+        position: Vec2 {
+            x: -300.0,
+            y: -200.0,
+        },
         ..default()
     };
 
     let p1_id = commands.spawn(p1).id();
     let p2_id = commands.spawn(p2).id();
     let p3_id = commands.spawn(p3).id();
+    let p4_id = commands.spawn(p4).id();
 
     let triangle = Shape {
         points: [p1_id, p2_id, p3_id],
@@ -57,14 +65,38 @@ fn setup(mut commands: Commands) {
     let spring_b = Spring {
         mp_a: p3_id,
         mp_b: p2_id,
-        stiffness: 10.0,
+        stiffness: 1.0,
         rest_length: 200.0,
-        damping_factor: 0.1,
+        damping_factor: 0.5,
     };
 
     let spring_c = Spring {
         mp_a: p3_id,
+        mp_b: p4_id,
+        stiffness: 1.0,
+        rest_length: 200.0,
+        damping_factor: 0.5,
+    };
+
+    let spring_d = Spring {
+        mp_a: p4_id,
         mp_b: p1_id,
+        stiffness: 1.0,
+        rest_length: 200.0,
+        damping_factor: 0.5,
+    };
+
+    let spring_e = Spring {
+        mp_a: p1_id,
+        mp_b: p3_id,
+        stiffness: 1.0,
+        rest_length: 200.0,
+        damping_factor: 0.5,
+    };
+
+    let spring_f = Spring {
+        mp_a: p2_id,
+        mp_b: p4_id,
         stiffness: 1.0,
         rest_length: 200.0,
         damping_factor: 0.5,
@@ -74,6 +106,9 @@ fn setup(mut commands: Commands) {
     commands.spawn(spring_a);
     commands.spawn(spring_b);
     commands.spawn(spring_c);
+    commands.spawn(spring_d);
+    commands.spawn(spring_e);
+    commands.spawn(spring_f);
 }
 
 fn draw_springs(query: Query<&Spring>, query_mp: Query<&MassPoint>, mut lines: ResMut<DebugLines>) {

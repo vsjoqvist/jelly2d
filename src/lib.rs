@@ -8,15 +8,19 @@ pub struct MassPoint {
     pub position: Vec2,
     pub velocity: Vec2,
     pub mass: f32,
+    pub force: Vec2,
 }
 
 impl MassPoint {
     fn update_mass_point(&mut self, time: &Res<Time>, gravity: &Res<Gravity>) {
-        let force = gravity.0;
+        let mut force = self.force;
+        force += gravity.0;
 
         self.velocity += (force * time.delta_seconds()) / self.mass;
 
         self.position += self.velocity * time.delta_seconds();
+
+        self.force = Vec2::ZERO;
     }
 
     pub fn update_mass_points(
@@ -36,6 +40,7 @@ impl Default for MassPoint {
             position: Vec2::ZERO,
             velocity: Vec2::ZERO,
             mass: 1.0,
+            force: Vec2::ZERO,
         }
     }
 }
@@ -63,12 +68,12 @@ impl Spring {
 
         let dot_product = corresponding_velocity_difference.dot(normalized_direction_vector);
 
-        //total spring force
+        //Total spring force
         force + dot_product * self.damping_factor
     }
 
     fn move_mass_points(&mut self, query: &mut Query<&mut MassPoint>) {
-        let total_spring_force = self.get_force(&query);
+        let total_spring_force = self.get_force(query);
 
         let mp_arr = query.get_many_mut([self.mp_a, self.mp_b]).unwrap();
 
@@ -82,9 +87,9 @@ impl Spring {
             }
         }
 
-        mp_a.velocity = mp_a.velocity
+        mp_a.force = mp_a.force
             + total_spring_force * (mp_b.position - mp_a.position).normalize_or_zero();
-        mp_b.velocity = mp_b.velocity
+        mp_b.force = mp_b.force
             + total_spring_force * (mp_a.position - mp_b.position).normalize_or_zero();
     }
 
@@ -112,15 +117,15 @@ impl<const SIZE: usize> Shape<SIZE> {
         for point in &self.points {
             let point = query.get(*point).unwrap();
 
-            if (point.position.x < min_x) {
+            if point.position.x < min_x {
                 min_x = point.position.x;
             }
 
-            if (point.position.x > max_x) {
+            if point.position.x > max_x {
                 max_x = point.position.x;
             }
 
-            if (point.position.y < min_y) {
+            if point.position.y < min_y {
                 min_y = point.position.y;
             }
 
