@@ -131,7 +131,7 @@ fn build_square(offset: Vec2, commands: &mut Commands) {
     let s_e_id = commands.spawn(spring_e).id();
     let s_f_id = commands.spawn(spring_f).id();
 
-    let mut square = Shape {
+    let square = Shape {
         points: vec![p1_id, p2_id, p3_id, p4_id],
         springs: vec![s_a_id, s_b_id, s_c_id, s_d_id, s_e_id, s_f_id],
     };

@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use std::cmp::Ordering;
 
 #[derive(Resource)]
 pub struct Gravity(pub Vec2);
@@ -140,48 +141,117 @@ impl Shape {
 
     pub fn resolve_collisons(
         mut shapes_query: Query<&mut Shape>,
-        mut points_query: Query<&mut MassPoint>,
+        points_query: Query<&MassPoint>,
+        mut mut_points_query: Query<&mut MassPoint>,
     ) {
         let mut combinations = shapes_query.iter_combinations_mut();
-        while let Some([mut a, mut b]) = combinations.fetch_next() {}
+        while let Some([mut a, mut b]) = combinations.fetch_next() {
+            Self::shape_collision(&mut a, &mut b, &points_query, &mut mut_points_query);
+        }
     }
 
-    fn check_for_collision(shape_a: &Shape, shape_b: &Shape, query: &Query<&MassPoint>) -> bool {
-        let mut collision = false;
-        let b_length = shape_b.points.len();
-
-        for point in query.iter_many(&shape_a.points) {
-            let mut shape_b = query.iter_many(&shape_b.points);
-
-            let mut next = 0;
-            for current in 0..b_length {
-                let current_vertice = shape_b
-                    .nth(current)
-                    .expect("THe vertice does not exist :(")
-                    .position;
-                let next_vertice = shape_b
-                    .nth(next)
-                    .expect("THe vertice does not exist :( 2")
-                    .position;
-
-                let point_position = point.position;
-
-                //Check if the point is inside the shape utilising black magic. 
-                if (((current_vertice.y > point_position.y) != (next_vertice.y > point_position.y))
-                    && (point_position.x
-                        < (next_vertice.x - current_vertice.x)
-                            * (point_position.y - current_vertice.y)
-                            / (next_vertice.y - current_vertice.y)
-                            + current_vertice.x))
-                {
-                    collision = !collision;
-                }
-
-                //Get the next vertice in shape and wrap around to zero if we hit the end
-                next = current + 1;
+    ///Returns none if the mass
+    fn shape_collision(
+        shape_a: &mut Shape,
+        shape_b: &mut Shape,
+        query: &Query<&MassPoint>,
+        mut_query: &mut Query<&mut MassPoint>,
+    ) {
+        for point in shape_a.points.iter() {
+            match Self::point_to_polygon_collision_detection(&query.get(*point).unwrap(), &shape_b, query) {
+                Some(v) => Self::resolve_collision(&mut_query.get_many_mut(v.0).unwrap(),v.1),
+                _ => {}
             }
         }
-
-        collision
     }
+
+    fn resolve_collision(line: &[Mut<'_, MassPoint>; 2], closest_point: Vec2) {
+
+    }
+
+    fn point_to_polygon_collision_detection(
+        point: &MassPoint,
+        shape: &Shape,
+        query: &Query<&MassPoint>,
+    ) -> Option<([Entity; 2], Vec2)> {
+        let mut collision = false;
+        let b_length = shape.points.len();
+
+        //The lines which we have collided with
+        let mut collision_lines = vec![];
+
+        let shape_points = &shape.points;
+
+        let mut shape = query.iter_many(&shape.points);
+
+        let mut next = 0;
+        for current in 0..b_length {
+            let current_vertice = shape
+                .nth(current)
+                .expect("THe vertice does not exist :(")
+                .position;
+            let next_vertice = shape
+                .nth(next)
+                .expect("THe vertice does not exist :( 2")
+                .position;
+
+            let point_position = point.position;
+
+            //Check if the point is inside the shape utilising black magic.
+            if ((current_vertice.y > point_position.y) != (next_vertice.y > point_position.y))
+                && (point_position.x
+                    < (next_vertice.x - current_vertice.x) * (point_position.y - current_vertice.y)
+                        / (next_vertice.y - current_vertice.y)
+                        + current_vertice.x)
+            {
+                collision = !collision;
+                collision_lines.push((
+                    [shape_points[current], shape_points[next]],
+                    find_nearest_point_on_line(point.position, &current_vertice, &next_vertice),
+                ))
+            }
+
+            //Get the next vertice in shape and wrap around to zero if we hit the end
+            next = current + 1;
+            if next == b_length {
+                next = 0
+            };
+        }
+
+        if collision {
+            let lengths_to_lines: Vec<f32> = collision_lines
+                .iter()
+                .map(|v| point.position.distance(v.1).abs())
+                .collect();
+            let best_line_index = lengths_to_lines
+                .iter()
+                .enumerate()
+                .min_by(|(_, x), (_, y)| x.partial_cmp(y).unwrap_or(Ordering::Equal))
+                .unwrap()
+                .0;
+
+            return Some((
+                
+                    [collision_lines[best_line_index].0[0],
+                    collision_lines[best_line_index].0[1]],
+                
+                collision_lines[best_line_index].1,
+            ));
+        }
+
+        None
+    }
+}
+
+fn find_nearest_point_on_line(point: Vec2, origin: &Vec2, end: &Vec2) -> Vec2 {
+    //Get heading
+    let heading = *end - *origin;
+    let magnitude_max = (heading.x.powi(2) + heading.y.powi(2)).sqrt();
+    let heading = heading.normalize();
+
+    //Do projection from the point but clamp it
+    let lhs = point - *origin;
+    let dot_product = lhs.dot(heading);
+    let dot_product = dot_product.clamp(0.0, magnitude_max);
+    *origin + heading * dot_product
 }
