@@ -87,10 +87,10 @@ impl Spring {
             }
         }
 
-        mp_a.force = mp_a.force
-            + total_spring_force * (mp_b.position - mp_a.position).normalize_or_zero();
-        mp_b.force = mp_b.force
-            + total_spring_force * (mp_a.position - mp_b.position).normalize_or_zero();
+        mp_a.force =
+            mp_a.force + total_spring_force * (mp_b.position - mp_a.position).normalize_or_zero();
+        mp_b.force =
+            mp_b.force + total_spring_force * (mp_a.position - mp_b.position).normalize_or_zero();
     }
 
     pub fn update_springs(mut query: Query<&mut Spring>, mut mp_query: Query<&mut MassPoint>) {
@@ -102,13 +102,14 @@ impl Spring {
 
 ///SIZE has to be the same as the amont of points in the Shape
 #[derive(Component)]
-pub struct Shape<const SIZE: usize> {
-    pub points: [Entity; SIZE],
+pub struct Shape {
+    pub points: Vec<Entity>,
+    pub springs: Vec<Entity>,
 }
 
-impl<const SIZE: usize> Shape<SIZE> {
-    ///The points of the bb is retunred as follows min_x, max_x, min_y, max_y
-    fn get_bounding_box(&self, query: &Query<&MassPoint>) -> (f32, f32, f32, f32) {
+impl Shape {
+    ///The points of the bounding box is retunred as follows min_x, max_x, min_y, max_y
+    pub fn get_bounding_box(&self, query: &Query<&MassPoint>) -> (f32, f32, f32, f32) {
         let mut min_x = 0.0;
         let mut max_x = 0.0;
         let mut min_y = 0.0;
@@ -135,5 +136,52 @@ impl<const SIZE: usize> Shape<SIZE> {
         }
 
         (min_x, max_x, min_y, max_y)
+    }
+
+    pub fn resolve_collisons(
+        mut shapes_query: Query<&mut Shape>,
+        mut points_query: Query<&mut MassPoint>,
+    ) {
+        let mut combinations = shapes_query.iter_combinations_mut();
+        while let Some([mut a, mut b]) = combinations.fetch_next() {}
+    }
+
+    fn check_for_collision(shape_a: &Shape, shape_b: &Shape, query: &Query<&MassPoint>) -> bool {
+        let mut collision = false;
+        let b_length = shape_b.points.len();
+
+        for point in query.iter_many(&shape_a.points) {
+            let mut shape_b = query.iter_many(&shape_b.points);
+
+            let mut next = 0;
+            for current in 0..b_length {
+                let current_vertice = shape_b
+                    .nth(current)
+                    .expect("THe vertice does not exist :(")
+                    .position;
+                let next_vertice = shape_b
+                    .nth(next)
+                    .expect("THe vertice does not exist :( 2")
+                    .position;
+
+                let point_position = point.position;
+
+                //Check if the point is inside the shape utilising black magic. 
+                if (((current_vertice.y > point_position.y) != (next_vertice.y > point_position.y))
+                    && (point_position.x
+                        < (next_vertice.x - current_vertice.x)
+                            * (point_position.y - current_vertice.y)
+                            / (next_vertice.y - current_vertice.y)
+                            + current_vertice.x))
+                {
+                    collision = !collision;
+                }
+
+                //Get the next vertice in shape and wrap around to zero if we hit the end
+                next = current + 1;
+            }
+        }
+
+        collision
     }
 }
