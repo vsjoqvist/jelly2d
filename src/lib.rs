@@ -4,7 +4,8 @@ use std::cmp::Ordering;
 #[derive(Resource)]
 pub struct Gravity(pub Vec2);
 
-#[derive(Component)]
+#[derive(Component, Clone, Copy)]
+///Setting mass to 0.0 will cause divion by zero panics :D
 pub struct MassPoint {
     pub position: Vec2,
     pub velocity: Vec2,
@@ -139,40 +140,74 @@ impl Shape {
         (min_x, max_x, min_y, max_y)
     }
 
-    pub fn resolve_collisons(
+    pub fn resolve_collisions(
         mut shapes_query: Query<&mut Shape>,
-        points_query: Query<&MassPoint>,
         mut mut_points_query: Query<&mut MassPoint>,
     ) {
         let mut combinations = shapes_query.iter_combinations_mut();
         while let Some([mut a, mut b]) = combinations.fetch_next() {
-            Self::shape_collision(&mut a, &mut b, &points_query, &mut mut_points_query);
+            Self::shape_collision(&mut a, &mut b, &mut mut_points_query);
+            Self::shape_collision(&mut b, &mut a, &mut mut_points_query);
         }
     }
 
-    ///Returns none if the mass
     fn shape_collision(
         shape_a: &mut Shape,
         shape_b: &mut Shape,
-        query: &Query<&MassPoint>,
-        mut_query: &mut Query<&mut MassPoint>,
+        mut query: &mut Query<&mut MassPoint>,
     ) {
         for point in shape_a.points.iter() {
-            match Self::point_to_polygon_collision_detection(&query.get(*point).unwrap(), &shape_b, query) {
-                Some(v) => Self::resolve_collision(&mut_query.get_many_mut(v.0).unwrap(),v.1),
+            let point_point = query.get(*point).unwrap().clone();
+            match Self::point_to_polygon_collision_detection(point_point, &shape_b, query) {
+                Some(v) => Self::resolve_collision(v.0, v.1, point, &mut query),
                 _ => {}
             }
         }
     }
 
-    fn resolve_collision(line: &[Mut<'_, MassPoint>; 2], closest_point: Vec2) {
+    fn resolve_collision(
+        line: [Entity; 2],
+        closest_point: Vec2,
+        point: &Entity,
+        query: &mut Query<&mut MassPoint>,
+    ) {
+        let [mut a, mut b, mut point] = query.get_many_mut([line[0], line[1], *point]).unwrap();
 
+        let average_line_mass = (a.mass + b.mass) / 2.0;
+
+        let line_move_multiplier = average_line_mass / (average_line_mass + point.mass);
+
+        //Account for the diffrent masses
+        let line_a_move_multiplier = a.mass / (a.mass + b.mass);
+
+        //Account for the closest point not beeing in the middle
+        let line_a_slent_multiplier =
+            1.0 - (a.position.distance(closest_point) / a.position.distance(b.position));
+
+        //Average them for the final multiplier
+        let a_move_multiplier = (line_a_move_multiplier + line_a_slent_multiplier) / 2.0;
+
+        let meet = a.position.lerp(closest_point, 1.0 - line_move_multiplier);
+
+        let point_change = meet - point.position;
+
+        let line_change = meet - closest_point;
+
+        let line_a_change = line_change * a_move_multiplier;
+
+        let line_b_change = line_change * (1.0 - a_move_multiplier);
+
+        point.position += point_change;
+
+        a.position += line_a_change;
+
+        b.position += line_b_change;
     }
 
     fn point_to_polygon_collision_detection(
-        point: &MassPoint,
+        point: MassPoint,
         shape: &Shape,
-        query: &Query<&MassPoint>,
+        query: &mut Query<&mut MassPoint>,
     ) -> Option<([Entity; 2], Vec2)> {
         let mut collision = false;
         let b_length = shape.points.len();
@@ -182,18 +217,17 @@ impl Shape {
 
         let shape_points = &shape.points;
 
-        let mut shape = query.iter_many(&shape.points);
+        let shape: Vec<&MassPoint> = query.iter_many(&shape.points).collect();
 
-        let mut next = 0;
         for current in 0..b_length {
-            let current_vertice = shape
-                .nth(current)
-                .expect("THe vertice does not exist :(")
-                .position;
-            let next_vertice = shape
-                .nth(next)
-                .expect("THe vertice does not exist :( 2")
-                .position;
+            //Get the next vertice in shape and wrap around to zero if we hit the end
+            let mut next = current + 1;
+            if next == b_length {
+                next = 0
+            };
+
+            let current_vertice = shape[current].position;
+            let next_vertice = shape[next].position;
 
             let point_position = point.position;
 
@@ -210,12 +244,6 @@ impl Shape {
                     find_nearest_point_on_line(point.position, &current_vertice, &next_vertice),
                 ))
             }
-
-            //Get the next vertice in shape and wrap around to zero if we hit the end
-            next = current + 1;
-            if next == b_length {
-                next = 0
-            };
         }
 
         if collision {
@@ -231,10 +259,10 @@ impl Shape {
                 .0;
 
             return Some((
-                
-                    [collision_lines[best_line_index].0[0],
-                    collision_lines[best_line_index].0[1]],
-                
+                [
+                    collision_lines[best_line_index].0[0],
+                    collision_lines[best_line_index].0[1],
+                ],
                 collision_lines[best_line_index].1,
             ));
         }
