@@ -155,13 +155,13 @@ impl Shape {
     fn shape_collision(
         shape_a: &mut Shape,
         shape_b: &mut Shape,
-        mut query: &mut Query<&mut MassPoint>,
+        query: &mut Query<&mut MassPoint>,
     ) {
         for point in shape_a.points.iter() {
-            let point_point = query.get(*point).unwrap().clone();
-            match Self::point_to_polygon_collision_detection(point_point, &shape_b, query) {
+            let point_point = *query.get(*point).unwrap();
+            match Self::point_to_polygon_collision_detection(point_point, shape_b, query) {
                 //Resolves the collision it it detected any.
-                Some(v) => Self::resolve_collision(v.0, v.1, point, &mut query),
+                Some(v) => Self::resolve_collision(v.0, v.1, point, query),
                 _ => {}
             }
         }
@@ -174,8 +174,6 @@ impl Shape {
         query: &mut Query<&mut MassPoint>,
     ) {
         let [mut a, mut b, mut point] = query.get_many_mut([line[0], line[1], *point]).unwrap();
-
-        dbg!(&a, &b, &point);
 
         let average_line_mass = (a.mass + b.mass) / 2.0;
 
@@ -191,14 +189,19 @@ impl Shape {
         //Average them for the final multiplier
         let a_move_multiplier = (line_a_move_multiplier + line_a_slent_multiplier) / 2.0;
 
+        //Where the points should meet
         let meet = point.position.lerp(closest_point, 1.0 - line_move_multiplier);
 
+        //What the point needs to change by
         let point_change = meet - point.position;
 
+        //What the line needs to change by
         let line_change = meet - closest_point;
 
+        //What the start of the line needs to change by
         let line_a_change = line_change * a_move_multiplier;
 
+        //What the end of the line needs to change by
         let line_b_change = line_change * (1.0 - a_move_multiplier);
 
         point.position += point_change;
@@ -206,6 +209,7 @@ impl Shape {
         a.position += line_a_change;
 
         b.position += line_b_change;
+
     }
 
     fn point_to_polygon_collision_detection(
