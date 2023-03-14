@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::camera::RenderTarget};
 use bevy_prototype_debug_lines::*;
 use jelly2d::*;
 
@@ -11,6 +11,7 @@ fn main() {
         .add_system(Spring::update_springs)
         .add_system(MassPoint::update_mass_points)
         .add_system(draw_springs)
+        .add_system(draw_shapes)
         .add_system(Shape::resolve_collisions)
         .run();
 }
@@ -19,11 +20,12 @@ fn main() {
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
-    build_square(Vec2::ZERO, &mut commands, Vec2::ZERO);
+    build_square(Vec2::ZERO, &mut commands, Vec2::ZERO, 10.0);
     build_square(
         Vec2::new(-400.0, 0.0),
         &mut commands,
-        Vec2 { x: 100.0, y: 0.0 },
+        Vec2::new(10.0, 0.0),
+        10.0
     );
 }
 
@@ -47,27 +49,52 @@ fn draw_springs(query: Query<&Spring>, query_mp: Query<&MassPoint>, mut lines: R
     }
 }
 
-fn build_square(offset: Vec2, commands: &mut Commands, velocity: Vec2) {
+fn draw_shapes(query: Query<&Shape>, query_mp: Query<&MassPoint>, mut lines: ResMut<DebugLines>) {
+    for shape in query.iter() {
+        let points: Vec<&MassPoint> = query_mp.iter_many(&shape.points).collect();
+
+        for current in 0..points.len() {
+            let mut next = current + 1;
+
+            if next == points.len() {
+                next = 0;
+            }
+
+            let pos_a = points[current].position.clone().extend(0.0);
+            let pos_b = points[next].position.clone().extend(0.0);
+
+            lines.line_colored(pos_a, pos_b, 0.0, Color::GREEN);
+        }
+    }
+}
+
+fn build_square(offset: Vec2, commands: &mut Commands, velocity: Vec2, size: f32) {
+
+    const stiffness: f32 = 10.0;
+    const damping_factor: f32 = 0.7;
+
+    let size = size / 2.0;
+
     let p1 = MassPoint {
-        position: Vec2 { x: 100.0, y: 50.0 } + offset,
+        position: Vec2 { x: 1.0, y: 1.0 } * size + offset,
         velocity,
         ..default()
     };
 
     let p2 = MassPoint {
-        position: Vec2 { x: 500.0, y: 200.0 } + offset,
+        position: Vec2 { x: 3.0, y: 1.0 } * size + offset,
         velocity,
         ..default()
     };
 
     let p3 = MassPoint {
-        position: Vec2 { x: 200.0, y: 00.0 } + offset,
+        position: Vec2 { x: 3.0, y: -1.0 } * size + offset,
         velocity,
         ..default()
     };
 
     let p4 = MassPoint {
-        position: Vec2 { x: 00.0, y: 0.0 } + offset,
+        position: Vec2 { x: 1.0, y: -1.0 } * size + offset,
         velocity,
         ..default()
     };
@@ -80,49 +107,49 @@ fn build_square(offset: Vec2, commands: &mut Commands, velocity: Vec2) {
     let spring_a = Spring {
         mp_a: p1_id,
         mp_b: p2_id,
-        stiffness: 1.0,
+        stiffness,
         rest_length: 200.0,
-        damping_factor: 0.5,
+        damping_factor,
     };
 
     let spring_b = Spring {
         mp_a: p3_id,
         mp_b: p2_id,
-        stiffness: 1.0,
+        stiffness,
         rest_length: 200.0,
-        damping_factor: 0.5,
+        damping_factor,
     };
 
     let spring_c = Spring {
         mp_a: p3_id,
         mp_b: p4_id,
-        stiffness: 1.0,
+        stiffness,
         rest_length: 200.0,
-        damping_factor: 0.5,
+        damping_factor,
     };
 
     let spring_d = Spring {
         mp_a: p4_id,
         mp_b: p1_id,
-        stiffness: 1.0,
+        stiffness,
         rest_length: 200.0,
-        damping_factor: 0.5,
+        damping_factor,
     };
 
     let spring_e = Spring {
         mp_a: p1_id,
         mp_b: p3_id,
-        stiffness: 1.0,
+        stiffness,
         rest_length: 200.0 * 2f32.sqrt(),
-        damping_factor: 0.5,
+        damping_factor,
     };
 
     let spring_f = Spring {
         mp_a: p2_id,
         mp_b: p4_id,
-        stiffness: 1.0,
+        stiffness,
         rest_length: 200.0 * 2f32.sqrt(),
-        damping_factor: 0.5,
+        damping_factor,
     };
 
     let s_a_id = commands.spawn(spring_a).id();
