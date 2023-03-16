@@ -173,6 +173,7 @@ impl Shape {
         point: &Entity,
         query: &mut Query<&mut MassPoint>,
     ) {
+
         let [mut a, mut b, mut point] = query.get_many_mut([line[0], line[1], *point]).unwrap();
 
         let average_line_mass = (a.mass + b.mass) / 2.0;
@@ -209,6 +210,42 @@ impl Shape {
         a.position += line_a_change;
 
         b.position += line_b_change;
+
+        //Update thier velocities 
+        let average_line_velocity = (a.velocity + b.velocity) / 2.0;
+        let new_point_x_velocity = (point.velocity.x * (point.mass - average_line_mass) + (2.0 * average_line_mass * average_line_velocity.x)) / (point.mass + average_line_mass);
+
+        let new_point_y_velocity = (point.velocity.y * (point.mass - average_line_mass) + (2.0 * average_line_mass * average_line_velocity.y)) / (point.mass + average_line_mass);
+
+        let new_line_x_velocity = (average_line_velocity.x * (average_line_mass - point.mass) + (2.0 * point.mass * point.velocity.x)) / (point.mass + average_line_mass);
+
+        let new_line_y_velocity = (average_line_velocity.y * (average_line_mass - point.mass) + (2.0 * point.mass * point.velocity.y)) / (point.mass + average_line_mass);
+
+        let new_line_a_x_velocity = new_line_x_velocity * line_a_move_multiplier;
+        let new_line_a_y_velocity = new_line_y_velocity * line_a_move_multiplier;
+
+        let new_line_b_x_velocity = new_line_x_velocity * (1.0 - line_a_move_multiplier);
+        let new_line_b_y_velocity = new_line_y_velocity * (1.0 - line_a_move_multiplier);
+
+        //Move them away from each other to avoid recalculating the new velocity multiple times
+        point.velocity.x += new_point_x_velocity;
+        point.velocity.y += new_point_y_velocity;
+
+        a.velocity.x += new_line_a_x_velocity;
+        a.velocity.y += new_line_a_x_velocity;
+
+        b.velocity.x += new_line_b_x_velocity;
+        b.velocity.y += new_line_b_x_velocity;
+
+        //Set thier new velocities
+        point.velocity.x = new_point_x_velocity;
+        point.velocity.y = new_point_y_velocity;
+
+        a.velocity.x = new_line_a_x_velocity;
+        a.velocity.y = new_line_a_y_velocity;
+
+        b.velocity.x = new_line_b_x_velocity;
+        b.velocity.y = new_line_b_y_velocity;
 
     }
 

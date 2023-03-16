@@ -10,8 +10,8 @@ fn main() {
         .insert_resource(Gravity(Vec2::new(0.0, 0.0)))
         .add_system(Spring::update_springs)
         .add_system(MassPoint::update_mass_points)
-        .add_system(draw_springs)
-        //.add_system(draw_shapes)
+        //.add_system(draw_springs)
+        .add_system(draw_shapes)
         .add_system(Shape::resolve_collisions)
         .run();
 }
@@ -20,12 +20,13 @@ fn main() {
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
-    build_square(Vec2::ZERO, &mut commands, Vec2::ZERO, 200.0);
+    build_square(Vec2::ZERO, &mut commands, Vec2::new(00.0, 0.0), 200.0, 5.0);
     build_square(
-        Vec2::new(-400.0, 0.0),
+        Vec2::new(-800.0, 0.0),
         &mut commands,
-        Vec2::new(100.0, 0.0),
-        250.0
+        Vec2::new(200.0, 0.0),
+        250.0,
+        1.0,
     );
 }
 
@@ -68,7 +69,7 @@ fn draw_shapes(query: Query<&Shape>, query_mp: Query<&MassPoint>, mut lines: Res
     }
 }
 
-fn build_square(offset: Vec2, commands: &mut Commands, velocity: Vec2, size: f32) {
+fn build_square(offset: Vec2, commands: &mut Commands, velocity: Vec2, size: f32, mass: f32) {
 
     const STIFFNESS: f32 = 10.0;
     const DAMPING_FACTOR: f32 = 0.7;
@@ -78,24 +79,28 @@ fn build_square(offset: Vec2, commands: &mut Commands, velocity: Vec2, size: f32
     let p1 = MassPoint {
         position: Vec2 { x: 1.0, y: 1.0 } * size + offset,
         velocity,
+        mass,
         ..default()
     };
 
     let p2 = MassPoint {
         position: Vec2 { x: 3.0, y: 1.0 } * size + offset,
         velocity,
+        mass,
         ..default()
     };
 
     let p3 = MassPoint {
         position: Vec2 { x: 3.0, y: -1.0 } * size + offset,
         velocity,
+        mass,
         ..default()
     };
 
     let p4 = MassPoint {
         position: Vec2 { x: 1.0, y: -1.0 } * size + offset,
         velocity,
+        mass,
         ..default()
     };
 
