@@ -173,7 +173,6 @@ impl Shape {
         point: &Entity,
         query: &mut Query<&mut MassPoint>,
     ) {
-
         let [mut a, mut b, mut point] = query.get_many_mut([line[0], line[1], *point]).unwrap();
 
         let average_line_mass = (a.mass + b.mass) / 2.0;
@@ -191,7 +190,9 @@ impl Shape {
         let a_move_multiplier = (line_a_move_multiplier + line_a_slent_multiplier) / 2.0;
 
         //Where the points should meet
-        let meet = point.position.lerp(closest_point, 1.0 - line_move_multiplier);
+        let meet = point
+            .position
+            .lerp(closest_point, 1.0 - line_move_multiplier);
 
         //What the point needs to change by
         let point_change = meet - point.position;
@@ -211,15 +212,23 @@ impl Shape {
 
         b.position += line_b_change;
 
-        //Update thier velocities 
+        //Update thier velocities
         let average_line_velocity = (a.velocity + b.velocity) / 2.0;
-        let new_point_x_velocity = (point.velocity.x * (point.mass - average_line_mass) + (2.0 * average_line_mass * average_line_velocity.x)) / (point.mass + average_line_mass);
+        let new_point_x_velocity = (point.velocity.x * (point.mass - average_line_mass)
+            + (2.0 * average_line_mass * average_line_velocity.x))
+            / (point.mass + average_line_mass);
 
-        let new_point_y_velocity = (point.velocity.y * (point.mass - average_line_mass) + (2.0 * average_line_mass * average_line_velocity.y)) / (point.mass + average_line_mass);
+        let new_point_y_velocity = (point.velocity.y * (point.mass - average_line_mass)
+            + (2.0 * average_line_mass * average_line_velocity.y))
+            / (point.mass + average_line_mass);
 
-        let new_line_x_velocity = (average_line_velocity.x * (average_line_mass - point.mass) + (2.0 * point.mass * point.velocity.x)) / (point.mass + average_line_mass);
+        let new_line_x_velocity = (average_line_velocity.x * (average_line_mass - point.mass)
+            + (2.0 * point.mass * point.velocity.x))
+            / (point.mass + average_line_mass);
 
-        let new_line_y_velocity = (average_line_velocity.y * (average_line_mass - point.mass) + (2.0 * point.mass * point.velocity.y)) / (point.mass + average_line_mass);
+        let new_line_y_velocity = (average_line_velocity.y * (average_line_mass - point.mass)
+            + (2.0 * point.mass * point.velocity.y))
+            / (point.mass + average_line_mass);
 
         let new_line_a_x_velocity = new_line_x_velocity * line_a_move_multiplier;
         let new_line_a_y_velocity = new_line_y_velocity * line_a_move_multiplier;
@@ -246,7 +255,6 @@ impl Shape {
 
         b.velocity.x = new_line_b_x_velocity;
         b.velocity.y = new_line_b_y_velocity;
-
     }
 
     fn point_to_polygon_collision_detection(
@@ -276,6 +284,11 @@ impl Shape {
 
             let point_position = point.position;
 
+            collision_lines.push((
+                [shape_points[current], shape_points[next]],
+                find_nearest_point_on_line(point.position, &current_vertice, &next_vertice),
+            ));
+
             //Check if the point is inside the shape utilising black magic.
             if ((current_vertice.y > point_position.y) != (next_vertice.y > point_position.y))
                 && (point_position.x
@@ -284,10 +297,6 @@ impl Shape {
                         + current_vertice.x)
             {
                 collision = !collision;
-                collision_lines.push((
-                    [shape_points[current], shape_points[next]],
-                    find_nearest_point_on_line(point.position, &current_vertice, &next_vertice),
-                ))
             }
         }
 
@@ -296,13 +305,13 @@ impl Shape {
                 .iter()
                 .map(|v| point.position.distance(v.1).abs())
                 .collect();
+
             let best_line_index = lengths_to_lines
                 .iter()
                 .enumerate()
                 .min_by(|(_, x), (_, y)| x.partial_cmp(y).unwrap_or(Ordering::Equal))
                 .unwrap()
                 .0;
-
             return Some((
                 [
                     collision_lines[best_line_index].0[0],

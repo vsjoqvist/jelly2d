@@ -1,4 +1,4 @@
-use bevy::{prelude::*};
+use bevy::prelude::*;
 use bevy_prototype_debug_lines::*;
 use jelly2d::*;
 
@@ -10,8 +10,8 @@ fn main() {
         .insert_resource(Gravity(Vec2::new(0.0, 0.0)))
         .add_system(Spring::update_springs)
         .add_system(MassPoint::update_mass_points)
-        //.add_system(draw_springs)
-        .add_system(draw_shapes)
+        .add_system(draw_springs)
+        //.add_system(draw_shapes)
         .add_system(Shape::resolve_collisions)
         .run();
 }
@@ -22,7 +22,7 @@ fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
     build_square(Vec2::ZERO, &mut commands, Vec2::new(00.0, 0.0), 200.0, 5.0);
     build_square(
-        Vec2::new(-800.0, 0.0),
+        Vec2::new(-400.0, -10.0),
         &mut commands,
         Vec2::new(200.0, 0.0),
         250.0,
@@ -70,35 +70,32 @@ fn draw_shapes(query: Query<&Shape>, query_mp: Query<&MassPoint>, mut lines: Res
 }
 
 fn build_square(offset: Vec2, commands: &mut Commands, velocity: Vec2, size: f32, mass: f32) {
-
     const STIFFNESS: f32 = 10.0;
     const DAMPING_FACTOR: f32 = 0.7;
 
-    let size = size / 2.0;
-
     let p1 = MassPoint {
-        position: Vec2 { x: 1.0, y: 1.0 } * size + offset,
+        position: Vec2 { x: 0.0, y: 0.0 } + offset,
         velocity,
         mass,
         ..default()
     };
 
     let p2 = MassPoint {
-        position: Vec2 { x: 3.0, y: 1.0 } * size + offset,
+        position: Vec2 { x: size, y: 0.0 } + offset,
         velocity,
         mass,
         ..default()
     };
 
     let p3 = MassPoint {
-        position: Vec2 { x: 3.0, y: -1.0 } * size + offset,
+        position: Vec2 { x: size, y: -size } + offset,
         velocity,
         mass,
         ..default()
     };
 
     let p4 = MassPoint {
-        position: Vec2 { x: 1.0, y: -1.0 } * size + offset,
+        position: Vec2 { x: 0.0, y: -size } + offset,
         velocity,
         mass,
         ..default()
@@ -113,7 +110,7 @@ fn build_square(offset: Vec2, commands: &mut Commands, velocity: Vec2, size: f32
         mp_a: p1_id,
         mp_b: p2_id,
         stiffness: STIFFNESS,
-        rest_length: 1.0 * size,
+        rest_length: size,
         damping_factor: DAMPING_FACTOR,
     };
 
@@ -121,7 +118,7 @@ fn build_square(offset: Vec2, commands: &mut Commands, velocity: Vec2, size: f32
         mp_a: p3_id,
         mp_b: p2_id,
         stiffness: STIFFNESS,
-        rest_length: 1.0 * size,
+        rest_length: size,
         damping_factor: DAMPING_FACTOR,
     };
 
@@ -129,7 +126,7 @@ fn build_square(offset: Vec2, commands: &mut Commands, velocity: Vec2, size: f32
         mp_a: p3_id,
         mp_b: p4_id,
         stiffness: STIFFNESS,
-        rest_length: 1.0 * size,
+        rest_length: size,
         damping_factor: DAMPING_FACTOR,
     };
 
@@ -137,7 +134,7 @@ fn build_square(offset: Vec2, commands: &mut Commands, velocity: Vec2, size: f32
         mp_a: p4_id,
         mp_b: p1_id,
         stiffness: STIFFNESS,
-        rest_length: 1.0 * size,
+        rest_length: size,
         damping_factor: DAMPING_FACTOR,
     };
 
@@ -145,7 +142,7 @@ fn build_square(offset: Vec2, commands: &mut Commands, velocity: Vec2, size: f32
         mp_a: p1_id,
         mp_b: p3_id,
         stiffness: STIFFNESS,
-        rest_length: 1.0 * size * 2f32.sqrt(),
+        rest_length: size * 2f32.sqrt(),
         damping_factor: DAMPING_FACTOR,
     };
 
@@ -153,7 +150,7 @@ fn build_square(offset: Vec2, commands: &mut Commands, velocity: Vec2, size: f32
         mp_a: p2_id,
         mp_b: p4_id,
         stiffness: STIFFNESS,
-        rest_length: 1.0 * size * 2f32.sqrt(),
+        rest_length: size * 2f32.sqrt(),
         damping_factor: DAMPING_FACTOR,
     };
 
