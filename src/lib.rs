@@ -230,11 +230,11 @@ impl Shape {
             + (2.0 * point.mass * point.velocity.y))
             / (point.mass + average_line_mass);
 
-        let new_line_a_x_velocity = new_line_x_velocity * line_a_move_multiplier;
-        let new_line_a_y_velocity = new_line_y_velocity * line_a_move_multiplier;
+        let new_line_a_x_velocity = new_line_x_velocity;
+        let new_line_a_y_velocity = new_line_y_velocity;
 
-        let new_line_b_x_velocity = new_line_x_velocity * (1.0 - line_a_move_multiplier);
-        let new_line_b_y_velocity = new_line_y_velocity * (1.0 - line_a_move_multiplier);
+        let new_line_b_x_velocity = new_line_x_velocity;
+        let new_line_b_y_velocity = new_line_y_velocity;
 
         //Move them away from each other to avoid recalculating the new velocity multiple times
         point.velocity.x += new_point_x_velocity;
