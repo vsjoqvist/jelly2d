@@ -2,17 +2,20 @@ use bevy::prelude::*;
 use bevy_prototype_debug_lines::*;
 use jelly2d::*;
 
+const GRAVITY: f32 = 100.0;
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugin(DebugLinesPlugin::default())
         .add_startup_system(setup)
-        .insert_resource(Gravity(Vec2::new(0.0, 0.0)))
         .add_system(Spring::update_springs)
         .add_system(MassPoint::update_mass_points)
+        .add_system(apply_gravity)
         //.add_system(draw_springs)
         .add_system(draw_shapes)
         .add_system(Shape::resolve_collisions)
+        .add_system(dampen_velocities)
         .run();
 }
 
@@ -20,14 +23,30 @@ fn main() {
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
-    build_square(Vec2::ZERO, &mut commands, Vec2::new(00.0, 0.0), 200.0, 1.0);
     build_square(
-        Vec2::new(-400.0, -10.0),
+        Vec2::new(-200.0, 100.0),
         &mut commands,
-        Vec2::new(500.0, 0.0),
-        250.0,
+        Vec2::new(00.0, 0.0),
+        200.0,
         2.0,
     );
+    // build_square(
+    //     Vec2::new(0.0, 300.0),
+    //     &mut commands,
+    //     Vec2::new(00.0, 0.0),
+    //     200.0,
+    //     1.0,
+    // );
+
+    // build_square(
+    //     Vec2::new(-400.0, 300.0),
+    //     &mut commands,
+    //     Vec2::new(200.0, 0.0),
+    //     250.0,
+    //     2.0,
+    // );
+
+    creat_floor(commands);
 }
 
 fn draw_springs(query: Query<&Spring>, query_mp: Query<&MassPoint>, mut lines: ResMut<DebugLines>) {
@@ -70,8 +89,8 @@ fn draw_shapes(query: Query<&Shape>, query_mp: Query<&MassPoint>, mut lines: Res
 }
 
 fn build_square(offset: Vec2, commands: &mut Commands, velocity: Vec2, size: f32, mass: f32) {
-    const STIFFNESS: f32 = 10.0;
-    const DAMPING_FACTOR: f32 = 0.7;
+    const STIFFNESS: f32 = 5.0;
+    const DAMPING_FACTOR: f32 = 0.95;
 
     let p1 = MassPoint {
         position: Vec2 { x: 0.0, y: 0.0 } + offset,
@@ -167,4 +186,68 @@ fn build_square(offset: Vec2, commands: &mut Commands, velocity: Vec2, size: f32
     };
 
     commands.spawn(square);
+}
+
+fn apply_gravity(mut query: Query<&mut MassPoint>, time: Res<Time>) {
+    for mut point in query.iter_mut() {
+        if point.movable {
+            point.position.y -= GRAVITY * time.delta_seconds();
+        }
+    }
+}
+
+fn dampen_velocities(mut query: Query<&mut MassPoint>, time: Res<Time>) {
+    for mut point in query.iter_mut() {
+        point.velocity *= 1.0 - (0.5 * time.delta_seconds());
+    }
+}
+
+fn creat_floor(mut commands: Commands) {
+    let p1 = MassPoint {
+        position: Vec2 {
+            x: -300.0,
+            y: -200.0,
+        },
+        movable: false,
+        ..default()
+    };
+
+    let p2 = MassPoint {
+        position: Vec2 {
+            x: 300.0,
+            y: -200.0,
+        },
+        movable: false,
+        ..default()
+    };
+
+    let p3 = MassPoint {
+        position: Vec2 {
+            x: 300.0,
+            y: -300.0,
+        },
+        movable: false,
+        ..default()
+    };
+
+    let p4 = MassPoint {
+        position: Vec2 {
+            x: -300.0,
+            y: -300.0,
+        },
+        movable: false,
+        ..default()
+    };
+
+    let p1 = commands.spawn(p1).id();
+    let p2 = commands.spawn(p2).id();
+    let p3 = commands.spawn(p3).id();
+    let p4 = commands.spawn(p4).id();
+
+    let floor = Shape {
+        points: vec![p1, p2, p3, p4],
+        springs: vec![],
+    };
+
+    commands.spawn(floor);
 }
