@@ -19,12 +19,11 @@ fn main() {
         .run();
 }
 
-//TODO: FIXA FJÄDRARNA
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
     build_square(
-        Vec2::new(-200.0, 100.0),
+        Vec2::new(-400.0, 100.0),
         &mut commands,
         Vec2::new(00.0, 0.0),
         200.0,
@@ -198,7 +197,7 @@ fn apply_gravity(mut query: Query<&mut MassPoint>, time: Res<Time>) {
 
 fn dampen_velocities(mut query: Query<&mut MassPoint>, time: Res<Time>) {
     for mut point in query.iter_mut() {
-        point.velocity *= 1.0 - (0.5 * time.delta_seconds());
+        point.velocity *= 1.0 - (0.9 * time.delta_seconds());
     }
 }
 

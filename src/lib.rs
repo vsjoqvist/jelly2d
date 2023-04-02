@@ -218,14 +218,14 @@ impl Shape {
             1.0
         };
 
-        //Account for the diffrent masses
+        //Account for the different masses
         let line_a_mass_move_multiplier = 1.0 + ((a.mass + b.mass) / 2.0);
 
-        //Account for the closest point not beeing in the middle
-        let line_a_slent_multiplier = 1.0 + a.position.distance(closest_point) / a.position.distance(b.position);
+        //Account for the closest point not being in the middle
+        let line_a_slant_multiplier = 1.0 + a.position.distance(closest_point) / a.position.distance(b.position);
 
         //Average them for the final multiplier
-        let a_move_multiplier = (line_a_mass_move_multiplier + line_a_slent_multiplier) / 2.0;
+        let a_move_multiplier = (line_a_mass_move_multiplier + line_a_slant_multiplier) / 2.0;
 
         //Where the points should meet
         let meet = point
